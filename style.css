@@ -1,0 +1,303 @@
+body{
+    font-family: "Segoe UI", Roboto, sans-serif;
+    color: #222;
+    margin: 0;
+    padding: 0;
+    display: block;
+    min-height: 100vh;
+    
+    background: url('fondo.png') no-repeat center center fixed; 
+    background-size: cover; 
+}
+.Contenedor{
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+.Boton-redireccion{
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    margin-top: 20px;
+}
+.Boton-redireccion:hover{
+    background-color: #45a049;
+}
+
+
+.banner-principal {
+    background-color: #0078d7;
+    color: white;
+    width: 100%;
+    padding: 80px 0;
+    margin-bottom: 0;
+    position: relative;
+    z-index: 1; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.banner-content {
+    max-width: 1000px;
+    width: 90%;
+    margin: 0 auto;
+    text-align: center;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 3rem;
+    font-weight: 200;
+    letter-spacing: 2px;
+}
+
+.pda-label {
+    display: block;
+    font-size: 1.5rem; 
+    font-weight: 500;
+    margin-top: 5px;
+    letter-spacing: 5px;
+}
+
+/* ======== ENCABEZADO ======== */
+h1 {
+    text-align: center;
+    background: linear-gradient(90deg, #0078d7, #0099ff);
+    color: white;
+    margin: 0;
+    width: 100%;
+    padding: 20px 0;
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    border-bottom: 3px solid #005fa3;
+}
+
+/* ======== SECCIONES ======== */
+section {
+    background: white;
+    margin: 15px auto;
+    padding: 20px 25px;
+    border-radius: 16px;
+    max-width: 900px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+section:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+}
+
+/* ======== TITULOS DE SECCIONES ======== */
+h2 {
+    border-left: 6px solid #0078d7;
+    padding-left: 10px;
+    color: #0078d7;
+    font-size: 1.3rem;
+    margin-top: 0;
+}
+
+/* ======== INPUTS Y TEXTAREAS ======== */
+input[type="text"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: none;
+    background-color: #fafafa;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+    border-color: #0078d7;
+    box-shadow: 0 0 6px rgba(0, 120, 215, 0.3);
+    outline: none;
+}
+
+/* ======== BOTONES ======== */
+button {
+    background: linear-gradient(90deg, #0078d7, #0094ff);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: background 0.3s, transform 0.2s;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
+button:hover {
+    background: linear-gradient(90deg, #005fa3, #0078d7);
+    transform: scale(1.05);
+}
+
+/* ======== ID DEL EJERCICIO ======== */
+#exerciseID {
+    font-size: 1.1rem;
+    background: #eef6ff;
+    padding: 10px;
+    border-left: 4px solid #0078d7;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+/* ======== DESCRIPCIÓN FORMAL ======== */
+#formalDescription p {
+    margin: 5px 0;
+    font-size: 1rem;
+}
+
+#formalDescription pre {
+    background: #f3f6fa;
+    padding: 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-family: "Consolas", monospace;
+    border-left: 4px solid #0078d7;
+}
+
+/* ======== VISUALIZACIÓN DEL GRAFO ======== */
+#graph {
+    margin-top: 10px;
+    background: #fdfdfd;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
+/* ======== SIMULACIÓN ======== */
+#simulationSteps {
+    background: #f8faff;
+    border-left: 5px solid #0078d7;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    font-family: "Consolas", monospace;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.05);
+}
+
+#simulationSteps pre {
+    margin: 0;
+}
+
+#simulationSteps::before {
+    content: "📊 Descripción de pasos:";
+    display: block;
+    font-weight: bold;
+    color: #0078d7;
+    margin-bottom: 8px;
+}
+
+/* ======== RESPONSIVE ======== */
+@media (max-width: 600px) {
+    section {
+        padding: 15px;
+    }
+
+    button {
+        width: 100%;
+    }
+}
+
+
+/* ============================= */
+/* ESTILOS PARA LA PÁGINA DE LOGIN */
+/* ============================= */
+body.login-page {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    font-family: "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url('fondo.png') no-repeat center center fixed; /* 🔹 Aquí va tu imagen */
+    background-size: cover; /* La imagen se adapta a toda la pantalla */
+    animation: fadeInBackground 2s ease-in-out; /* efecto de aparición */
+}
+
+/* Efecto suave del fondo */
+@keyframes fadeInBackground {
+    from { opacity: 0; transform: scale(1.05); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Contenedor del login */
+.login-box {
+    background-color: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    padding: 40px 30px;
+    border-radius: 15px;
+    text-align: center;
+    width: 330px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+    animation: slideDown 1.2s ease;
+}
+
+/* Animación de "caer" el cuadro de login */
+@keyframes slideDown {
+    from { transform: translateY(-50px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Título */
+.login-box h2 {
+    color: #0078d7;
+    margin-bottom: 20px;
+}
+
+/* Campos de texto */
+.login-box input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 15px;
+    background-color: #f8f9fa;
+}
+
+.login-box input:focus {
+    border-color: #0078d7;
+    outline: none;
+    box-shadow: 0 0 6px rgba(0,120,215,0.3);
+}
+
+/* Botón */
+.login-box button {
+    width: 100%;
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #0078d7, #0099ff);
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.login-box button:hover {
+    background: linear-gradient(90deg, #005fa3, #0078d7);
+    transform: scale(1.05);
+}
+
+/* Mensaje de error */
+.error {
+    color: red;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
