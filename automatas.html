@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Simulador de Autómata de Pila</title>
   <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="styles.css">
+
+<link rel="stylesheet" href="styles.css?v=2">
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 </head>
 <body>
@@ -43,291 +46,354 @@
     <div id="simulationSteps" class="steps-box"></div>
   </section>
 
- <script>
-    const generateBtn = document.getElementById("generateBtn");
+<script>
+  const generateBtn = document.getElementById("generateBtn");
 
-    function generateID() {
-        return "PDA-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-    }
-
-    const PDA = {
-        Q: "{q0, q1, q2, qf}",
-        Sigma: "{x, y, z}",
-        Gamma: "{Z, Y}",
-        Delta: [
-            "(q0, x, Z) -> (q0, Z)",
-            "(q0, y, Z) -> (q1, YYZ)", 
-            "(q1, y, Y) -> (q1, YYY)", 
-            "(q1, z, Y) -> (q2, ε)", 
-            "(q2, z, Y) -> (q2, ε)",
-            "(q2, y, Y) -> (q2, ε)", 
-            "(q2, ε, Z) -> (qf, Z)"
-        ],
-        q0: "q0",
-        qf: "qf",
-
-        // -------------------------------------------------------------
-        // FUNCIÓN DE SIMULACIÓN DINÁMICA (Genera el array de objetos para la tabla)
-        // -------------------------------------------------------------
-        simulate: input => {
-            const detailedSteps = [];
-            let stepId = 0;
-            let state = "q0";
-            let stack = ["Z"];
-            let input_index = 0;
-            
-            // --- VALIDACIÓN LÓGICA (PARA MENSAJE FINAL) ---
-            const match = input.match(/^(x*)(y+)(z+)(y+)$/);
-            if (!match) {
-                return { 
-                    detailedSteps: [], 
-                    acceptanceMessage: "❌ Cadena RECHAZADA: No coincide con el patrón general x*y+z+y+." 
-                };
-            }
-
-            const [_, xPart, y1, zTotal, y2] = match;
-            const L_x = xPart.length;
-            const L_y1 = y1.length; // 2n
-            const L_z = zTotal.length; // 2m + 2
-            const L_y2 = y2.length; // 3n
-            
-            const n = L_y1 % 2 === 0 && L_y1 >= 2 ? L_y1 / 2 : 0;
-            const m = (L_z - 2) % 2 === 0 && (L_z - 2) >= 2 ? (L_z - 2) / 2 : 0;
-
-            const cond_y2 = L_y2 === 3 * L_y1;
-            const accepted = n >= 1 && m >= 1 && cond_y2;
-
-            // --- FUNCIÓN AUXILIAR PARA REGISTRAR PASOS ---
-            const pushStep = (prev_state, next_state, read_symbol, transition_rule, action_desc, consume_input = true) => {
-                const prev_index = consume_input ? input_index - 1 : input_index;
-                
-                const remaining_input = input.slice(input_index) || 'ε';
-                const stack_str = stack.length > 0 ? stack.join("") : 'ε';
-                
-                // Formato para la pila (ajustamos el estado de la pila después de la acción)
-                let display_stack = stack_str.replace(/Y{4}/g, 'Y⁴').replace(/Y{3}/g, 'Y³').replace(/Y{2}/g, 'Y²');
-                
-                // Determinamos la pila del ID (es la pila ANTES de la transición)
-                let id_stack = (stepId === 0) ? 'Z' : detailedSteps[stepId - 1].stack;
-                
-                detailedSteps.push({
-                    id: stepId++,
-                    state: prev_state, 
-                    remaining: input.slice(prev_index) || 'ε', // Cadena antes de consumir
-                    stack: id_stack,
-                    read: read_symbol,
-                    transition: transition_rule,
-                    action: action_desc
-                });
-                
-                state = next_state;
-                if (consume_input) input_index++;
-            };
-            
-            let temp_stack_count = 0; 
-            
-            // --- SIMULACIÓN ITERATIVA ---
-
-            // 0. Paso inicial (ID 0)
-            detailedSteps.push({
-                id: stepId++,
-                state: 'q0',
-                remaining: input,
-                stack: 'Z',
-                read: 'Inicial',
-                transition: 'N/A',
-                action: 'Pila inicial Z'
-            });
-
-            // 1. Leer x* (q0)
-            for (let i = 0; i < L_x; i++) {
-                pushStep('q0', 'q0', 'x', '(q0, x, Z) -> (q0, Z)', 'Se mantiene Z');
-            }
-
-            // 2. Leer y^(2n) (q0 -> q1 -> q1)
-            for (let i = 0; i < L_y1; i++) {
-                if (i === 0) {
-                    // q0 -> q1 (Consumiendo el primer y)
-                    stack.push("Y", "Y");
-                    temp_stack_count = 2;
-                    pushStep('q0', 'q1', 'y', '(q0, y, Z) -> (q1, YYZ)', `Apila Y Y (total Y${temp_stack_count + 1} Z)`);
-                } else {
-                    // q1 -> q1 
-                    stack.push("Y", "Y");
-                    temp_stack_count += 2;
-                    pushStep('q1', 'q1', 'y', '(q1, y, Y) -> (q1, YYY)', `Apila Y Y (total Y${temp_stack_count + 1} Z)`);
-                }
-            }
-            
-            // 3. Leer z^(2m+2) (q1 -> q2 -> q2)
-            for (let i = 0; i < L_z; i++) {
-                if (i === 0) {
-                    // q1 -> q2 (Consumiendo el primer z)
-                    if (stack.length > 1) stack.pop(); // Desapila 1 Y
-                    pushStep('q1', 'q2', 'z', '(q1, z, Y) -> (q2, ε)', `Desapila Y (total Y${stack.length - 1} Z)`);
-                } else if (i < m + 1 && stack.length > 1) { 
-                    // El resto de z's que desapilan Y 
-                    stack.pop(); 
-                    pushStep('q2', 'q2', 'z', '(q2, z, Y) -> (q2, ε)', `Desapila Y (total Y${stack.length - 1} Z)`);
-                } else {
-                    // El resto de z's que no modifican la pila interna (contador m+2)
-                    pushStep('q2', 'q2', 'z', '(q2, z, Z) -> (q2, Z)', `Pila no cambia`);
-                }
-            }
-
-            // 4. Leer y^(3n) (q2 -> q2)
-            for (let i = 0; i < L_y2; i++) {
-                if (stack.length > 1) { 
-                    stack.pop(); // Desapila 1 Y
-                }
-                pushStep('q2', 'q2', 'y', '(q2, y, Y) -> (q2, ε)', `Desapila Y (representa 3n)`);
-            }
-            
-            // 5. Transición a aceptación
-            if (input_index === input.length && stack.length === 1 && stack[0] === 'Z') {
-                stack.pop(); 
-                pushStep('q2', 'qf', 'ε', '(q2, ε, Z) -> (qf, ε)', 'Desapila Z (Cadena Aceptada)', false);
-            } else {
-                // Si la cadena se agotó y no está en estado final o la pila no es Z
-                detailedSteps.push({
-                    id: stepId++,
-                    state: state,
-                    remaining: 'ε',
-                    stack: stack.join('') || 'ε',
-                    read: 'Rechazo',
-                    transition: 'N/A',
-                    action: 'Rechazo: Pila/Cadena incorrecta'
-                });
-            }
-
-            // --- MENSAJE FINAL ---
-            const acceptanceMessage = accepted ? 
-                '✅ Cadena ACEPTADA (Cumple todas las condiciones de la gramática.)' : 
-                '❌ Cadena RECHAZADA (La validación lógica falla en las condiciones 2n/3n/2m+2.)';
-            
-            return { detailedSteps, acceptanceMessage };
-        }
-    };
-
-    function drawGraph(transitions, startState, finalState) {
-        // ... (Tu función drawGraph se mantiene igual) ...
-        const container = document.getElementById("graph");
-        const nodes = new Map();
-        const edges = [];
-        const regex = /\(([A-Za-z0-9_]+),\s*(.*?),\s*(.*?)\)\s*->\s*\(([A-Za-z0-9_]+),\s*(.*?)\)/g;
-        transitions.forEach(t => {
-            let m;
-            while ((m = regex.exec(t)) !== null) {
-                const from = m[1], input = m[2], stackTop = m[3], to = m[4], push = m[5];
-                if (!nodes.has(from)) nodes.set(from, { id: from, label: from });
-                if (!nodes.has(to)) nodes.set(to, { id: to, label: to });
-                edges.push({
-                    from, to, label: `${input}, ${stackTop}→${push}`
-                });
-            }
-        });
-        const styledNodes = Array.from(nodes.values()).map(n => {
-            const style = {
-                id: n.id,
-                label: n.label,
-                shape: "circle",
-                color: "#0078d7",
-                font: { color: "white" },
-                borderWidth: 2
-            };
-            if (n.id === startState) style.color = "#34c759";
-            if (n.id === finalState) {
-                style.shape = "ellipse";
-                style.borderWidth = 4;
-                style.color = "#ffcc00";
-            }
-            return style;
-        });
-        const data = { nodes: styledNodes, edges };
-        const options = {
-            edges: { arrows: "to", color: { color: "#333" }, font: { align: "horizontal" } },
-            physics: { enabled: true, stabilization: true }
-        };
-        container.innerHTML = "";
-        new vis.Network(container, data, options);
-    }
+  function generateID() {
+      return "PDA-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+  }
 
 
-    // -------------------------------------------------------------
-    // EVENT LISTENER (Muestra la tabla)
-    // -------------------------------------------------------------
-    generateBtn.addEventListener("click", () => {
-        const input = document.getElementById("exerciseInput").value.trim();
-        const idInput = document.getElementById("exerciseID");
-        const outputArea = document.getElementById("formalDescription");
-        const stepsDiv = document.getElementById("simulationSteps");
+  const PDA = {
+    // Estados del autómata de la imagen
+    Q: "{q0, q1, q2, q3, q4, q5}",
+    // Alfabeto de entrada
+    Sigma: "{x, y, z}",
+    // Símbolos de pila
+    Gamma: "{Z, 0, 1}",
 
-        if (!input) {
-            alert("Por favor ingresa una cadena para evaluar.");
-            return;
-        }
+    // Transiciones (formato igual al que ya usas)
+    // (estado, símbolo_entrada, cima_pila) -> (nuevo_estado, lo_que_se_pone_en_la_pila)
+    Delta: [
+        // En q0 leo x* y mantengo la pila (solo para permitir x al inicio)
+        "(q0, x, Z) -> (q0, Z)",
+        "(q0, x, 1) -> (q0, 1)",
+        "(q0, x, 0) -> (q0, 0)",
 
-        idInput.value = generateID();
-        drawGraph(PDA.Delta, PDA.q0, PDA.qf);
-        outputArea.value = `Q: ${PDA.Q}\nΣ: ${PDA.Sigma}\nΓ: ${PDA.Gamma}\nδ:\n${PDA.Delta.join("\n")}\nq₀: ${PDA.q0}\nqf: ${PDA.qf}`;
+        // Primer y: paso a q1 y empujo 11 sobre lo que haya
+        "(q0, y, Z) -> (q1, 11Z)",
+        "(q0, y, 1) -> (q1, 111)",
+        "(q0, y, 0) -> (q1, 110)",
 
-        // Obtener el resultado de la simulación dinámica
-        const simulationResult = PDA.simulate(input);
-        stepsDiv.innerHTML = ''; // Limpiar
+        // Más y del primer bloque: en q1 sigo empujando 11 (y²ⁿ)
+        "(q1, y, Z) -> (q1, 11Z)",
+        "(q1, y, 1) -> (q1, 111)",
+        "(q1, y, 0) -> (q1, 110)",
 
-        if (simulationResult.detailedSteps) {
-            const steps = simulationResult.detailedSteps;
-            const acceptanceMessage = simulationResult.acceptanceMessage;
-            
-            // Estructura de la tabla HTML
-            let tableHTML = `
-                <style>
-                    .simulation-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 15px;}
-                    .simulation-table th, .simulation-table td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-                    .simulation-table th { background-color: #f2f2f2; color: #0078d7; }
-                    .simulation-message { margin-top: 15px; font-weight: bold; padding: 10px; border-radius: 5px; }
-                    .simulation-message.accepted { background-color: #e6ffe6; color: #008000; }
-                    .simulation-message.rejected { background-color: #ffe6e6; color: #cc0000; }
-                </style>
-                <h3>📘 ID y Pasos de la Simulación:</h3>
-                <table class="simulation-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>ID (Estado, Cadena Restante, Pila)</th>
-                            <th>Símbolo Leído</th>
-                            <th>Transición δ</th>
-                            <th>Pila (Acción)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            steps.forEach(step => {
-                const id_format = `(${step.state}, ${step.remaining}, ${step.stack})`;
-                
-                tableHTML += `
-                    <tr>
-                        <td>${step.id}</td>
-                        <td style="font-family: monospace;">${id_format}</td>
-                        <td>${step.read}</td>
-                        <td style="font-family: monospace;">${step.transition}</td>
-                        <td>${step.action}</td>
-                    </tr>
-                `;
-            });
-            
-            tableHTML += '</tbody></table>';
-            
-            const messageClass = acceptanceMessage.includes('ACEPTADA') ? 'accepted' : 'rejected';
-            tableHTML += `<div class="simulation-message ${messageClass}">${acceptanceMessage}</div>`;
+        // Empiezo primer bloque de z^m: en q1 y q2 cada z empuja 00
+        "(q1, z, Z) -> (q2, 00Z)",
+        "(q1, z, 1) -> (q2, 001)",
+        "(q1, z, 0) -> (q2, 000)",
 
-            stepsDiv.innerHTML = tableHTML;
-        } else {
-            // Maneja el caso de cadena que no cumple el patrón inicial
-            stepsDiv.innerHTML = `<div class="simulation-message rejected">${simulationResult.acceptanceMessage}</div>`;
-        }
-    });
+        "(q2, z, Z) -> (q2, 00Z)",
+        "(q2, z, 1) -> (q2, 001)",
+        "(q2, z, 0) -> (q2, 000)",
+
+        // Segundo bloque z^{m+2}: ahora los z empiezan a desapilar 0
+        "(q2, z, 0) -> (q3, λ)",
+        "(q3, z, 0) -> (q3, λ)",
+
+        // Bloque final de y³ⁿ: en q3 y q4 cada y empuja 111
+        "(q3, y, Z) -> (q4, 111Z)",
+        "(q3, y, 1) -> (q4, 1111)",
+        "(q3, y, 0) -> (q4, 1110)",
+
+        "(q4, y, Z) -> (q4, 111Z)",
+        "(q4, y, 1) -> (q4, 1111)",
+        "(q4, y, 0) -> (q4, 1110)",
+
+        // Limpieza de la pila al final: q4 -> q5 borrando 0 y 1 con λ
+        "(q4, λ, 0) -> (q5, λ)",
+        "(q4, λ, 1) -> (q5, λ)",
+
+        // En q5 borro todo lo que quede (incluido Z si aceptas por pila vacía)
+        "(q5, λ, 0) -> (q5, λ)",
+        "(q5, λ, 1) -> (q5, λ)",
+        "(q5, λ, Z) -> (q5, λ)"
+    ],
+
+    // Estado inicial y final
+    q0: "q0",
+    qf: "q5",   // el estado final es q5, como en tu JFLAP
+
+    // El resto de tu objeto (simulate, etc.) lo puedes dejar como ya lo tienes
+};
+
+      // FUNCIÓN DE SIMULACIÓN DINÁMICA
+      // -------------------------------------------------------------
+      simulate: input => {
+          const detailedSteps = [];
+          let stepId = 0;
+          let state = "q0";
+          let stack = ["Z"];
+          let input_index = 0;
+          
+          // --- VALIDACIÓN LÓGICA GLOBAL ---
+          const match = input.match(/^(x*)(y+)(z+)(y+)$/);
+          if (!match) {
+              return { 
+                  detailedSteps: [], 
+                  acceptanceMessage: "❌ Cadena RECHAZADA: No coincide con el patrón general x*y+z+y+.",
+                  accepted: false
+              };
+          }
+
+          const [_, xPart, y1, zTotal, y2] = match;
+          const L_x  = xPart.length;
+          const L_y1 = y1.length;   // 2n
+          const L_z  = zTotal.length; // 2m + 2
+          const L_y2 = y2.length;   // 3n
+          
+          const n = (L_y1 % 2 === 0 && L_y1 >= 2) ? L_y1 / 2 : 0;
+          const m = ((L_z - 2) % 2 === 0 && (L_z - 2) >= 2) ? (L_z - 2) / 2 : 0;
+
+          // CORREGIDO: y^(3n)
+          const cond_y2 = (n >= 1 && L_y2 === 3 * n);
+          const accepted = n >= 1 && m >= 1 && cond_y2;
+
+          // --- FUNCIÓN AUXILIAR PARA REGISTRAR PASOS ---
+          const pushStep = (prev_state, next_state, read_symbol, transition_rule, action_desc, consume_input = true) => {
+              const prev_index = consume_input ? input_index - 1 : input_index;
+              const remaining_input = input.slice(prev_index) || 'ε';
+
+              let stack_str = stack.length > 0 ? stack.join("") : 'ε';
+              stack_str = stack_str
+                  .replace(/Y{4}/g, 'Y⁴')
+                  .replace(/Y{3}/g, 'Y³')
+                  .replace(/Y{2}/g, 'Y²');
+
+              let id_stack = (stepId === 0) ? 'Z' : detailedSteps[stepId - 1].stack;
+
+              detailedSteps.push({
+                  id: stepId++,
+                  state: prev_state, 
+                  remaining: remaining_input,
+                  stack: id_stack,
+                  read: read_symbol,
+                  transition: transition_rule,
+                  action: action_desc
+              });
+              
+              state = next_state;
+              if (consume_input) input_index++;
+          };
+          
+          let temp_stack_count = 0; 
+          
+          // --- PASO INICIAL (ID 0) ---
+          detailedSteps.push({
+              id: stepId++,
+              state: 'q0',
+              remaining: input,
+              stack: 'Z',
+              read: 'Inicial',
+              transition: 'N/A',
+              action: 'Pila inicial Z'
+          });
+
+          // 1. Leer x* (q0)
+          for (let i = 0; i < L_x; i++) {
+              pushStep('q0', 'q0', 'x', '(q0, x, Z) -> (q0, Z)', 'Se mantiene Z');
+          }
+
+          // 2. Leer y^(2n)  (q0 -> q1 -> q1)
+          for (let i = 0; i < L_y1; i++) {
+              if (i === 0) {
+                  // q0 -> q1
+                  stack.push("Y", "Y");
+                  temp_stack_count = 2;
+                  pushStep('q0', 'q1', 'y', '(q0, y, Z) -> (q1, YYZ)', `Apila Y Y (total Y${temp_stack_count + 1} Z)`);
+              } else {
+                  // q1 -> q1
+                  stack.push("Y", "Y");
+                  temp_stack_count += 2;
+                  pushStep('q1', 'q1', 'y', '(q1, y, Y) -> (q1, YYY)', `Apila Y Y (total Y${temp_stack_count + 1} Z)`);
+              }
+          }
+          
+          // 3. Leer z^(2m+2) (q1 -> q2 -> q2)
+          for (let i = 0; i < L_z; i++) {
+              if (i === 0) {
+                  if (stack.length > 1) stack.pop();
+                  pushStep('q1', 'q2', 'z', '(q1, z, Y) -> (q2, ε)', `Desapila Y (total Y${stack.length - 1} Z)`);
+              } else if (i < m + 1 && stack.length > 1) {
+                  stack.pop();
+                  pushStep('q2', 'q2', 'z', '(q2, z, Y) -> (q2, ε)', `Desapila Y (total Y${stack.length - 1} Z)`);
+              } else {
+                  pushStep('q2', 'q2', 'z', '(q2, z, Z) -> (q2, Z)', 'Pila no cambia');
+              }
+          }
+
+          // 4. Leer y^(3n) (q2)
+          for (let i = 0; i < L_y2; i++) {
+              if (stack.length > 1) {
+                  stack.pop();
+              }
+              pushStep('q2', 'q2', 'y', '(q2, y, Y) -> (q2, ε)', 'Desapila Y (representa 3n)');
+          }
+          
+          // 5. Transición de aceptación
+          if (input_index === input.length && stack.length === 1 && stack[0] === 'Z') {
+              stack.pop();
+              pushStep('q2', 'qf', 'ε', '(q2, ε, Z) -> (qf, ε)', 'Desapila Z (Cadena Aceptada)', false);
+          } else {
+              detailedSteps.push({
+                  id: stepId++,
+                  state: state,
+                  remaining: 'ε',
+                  stack: stack.join('') || 'ε',
+                  read: 'Rechazo',
+                  transition: 'N/A',
+                  action: 'Rechazo: Pila/Cadena incorrecta'
+              });
+          }
+
+          const acceptanceMessage = accepted ? 
+              '✅ Cadena ACEPTADA (Cumple todas las condiciones de la gramática.)' : 
+              '❌ Cadena RECHAZADA (La validación lógica falla en las condiciones 2n/3n/2m+2.)';
+          
+          return { detailedSteps, acceptanceMessage, accepted };
+      }
+  };
+
+  // -------------------------------------------------------------
+  // DIBUJAR EL AUTÓMATA (ahora depende de si fue aceptada/rechazada)
+  // -------------------------------------------------------------
+  function drawGraph(transitions, startState, finalState, accepted) {
+      const container = document.getElementById("graph");
+      const nodes = new Map();
+      const edges = [];
+      const regex = /\(([A-Za-z0-9_]+),\s*(.*?),\s*(.*?)\)\s*->\s*\(([A-Za-z0-9_]+),\s*(.*?)\)/g;
+
+      transitions.forEach(t => {
+          let m;
+          while ((m = regex.exec(t)) !== null) {
+              const from = m[1], input = m[2], stackTop = m[3], to = m[4], push = m[5];
+              if (!nodes.has(from)) nodes.set(from, { id: from, label: from });
+              if (!nodes.has(to)) nodes.set(to, { id: to, label: to });
+              edges.push({
+                  from, 
+                  to, 
+                  label: `${input}, ${stackTop}→${push}`
+              });
+          }
+      });
+
+      const styledNodes = Array.from(nodes.values()).map(n => {
+          const style = {
+              id: n.id,
+              label: n.label,
+              shape: "circle",
+              color: "#0078d7",
+              font: { color: "white" },
+              borderWidth: 2
+          };
+          if (n.id === startState) {
+              style.color = "#34c759";      // verde inicio
+          }
+          if (n.id === finalState) {
+              style.shape = "ellipse";
+              style.borderWidth = 4;
+              style.color = accepted ? "#34c759" : "#ff3b30"; // verde si acepta, rojo si rechaza
+          }
+          return style;
+      });
+
+      const data = { 
+          nodes: styledNodes, 
+          edges 
+      };
+      const options = {
+          edges: { 
+              arrows: "to", 
+              color: { color: "#333" }, 
+              font: { align: "horizontal" } 
+          },
+          physics: { enabled: true, stabilization: true }
+      };
+      container.innerHTML = "";
+      new vis.Network(container, data, options);
+  }
+
+  // -------------------------------------------------------------
+  // EVENTO DEL BOTÓN
+  // -------------------------------------------------------------
+  generateBtn.addEventListener("click", () => {
+      const input = document.getElementById("exerciseInput").value.trim();
+      const idInput = document.getElementById("exerciseID");
+      const outputArea = document.getElementById("formalDescription");
+      const stepsDiv = document.getElementById("simulationSteps");
+
+      if (!input) {
+          alert("Por favor ingresa una cadena para evaluar.");
+          return;
+      }
+
+      idInput.value = generateID();
+
+      // Ejecutar simulación
+      const simulationResult = PDA.simulate(input);
+      const { detailedSteps, acceptanceMessage, accepted } = simulationResult;
+
+      // Dibujar el autómata resaltando aceptación/rechazo
+      drawGraph(PDA.Delta, PDA.q0, PDA.qf, accepted);
+
+      // Mostrar descripción formal
+      outputArea.value = `Q: ${PDA.Q}\nΣ: ${PDA.Sigma}\nΓ: ${PDA.Gamma}\nδ:\n${PDA.Delta.join("\n")}\nq₀: ${PDA.q0}\nqf: ${PDA.qf}`;
+
+      // Limpiar resultados anteriores
+      stepsDiv.innerHTML = '';
+
+      if (detailedSteps && detailedSteps.length > 0) {
+          const steps = detailedSteps;
+          
+          let tableHTML = `
+              <style>
+                  .simulation-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin-top: 15px;}
+                  .simulation-table th, .simulation-table td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+                  .simulation-table th { background-color: #f2f2f2; color: #0078d7; }
+                  .simulation-message { margin-top: 15px; font-weight: bold; padding: 10px; border-radius: 5px; }
+                  .simulation-message.accepted { background-color: #e6ffe6; color: #008000; }
+                  .simulation-message.rejected { background-color: #ffe6e6; color: #cc0000; }
+              </style>
+              <h3>📘 ID y Pasos de la Simulación:</h3>
+              <table class="simulation-table">
+                  <thead>
+                      <tr>
+                          <th>#</th>
+                          <th>ID (Estado, Cadena Restante, Pila)</th>
+                          <th>Símbolo Leído</th>
+                          <th>Transición δ</th>
+                          <th>Pila (Acción)</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+          `;
+          
+          steps.forEach(step => {
+              const id_format = `(${step.state}, ${step.remaining}, ${step.stack})`;
+              
+              tableHTML += `
+                  <tr>
+                      <td>${step.id}</td>
+                      <td style="font-family: monospace;">${id_format}</td>
+                      <td>${step.read}</td>
+                      <td style="font-family: monospace;">${step.transition}</td>
+                      <td>${step.action}</td>
+                  </tr>
+              `;
+          });
+          
+          tableHTML += '</tbody></table>';
+          
+          const messageClass = accepted ? 'accepted' : 'rejected';
+          tableHTML += `<div class="simulation-message ${messageClass}">${acceptanceMessage}</div>`;
+
+          stepsDiv.innerHTML = tableHTML;
+      } else {
+          stepsDiv.innerHTML = `<div class="simulation-message rejected">${acceptanceMessage}</div>`;
+      }
+  });
 </script>
 </body>
 </html>
